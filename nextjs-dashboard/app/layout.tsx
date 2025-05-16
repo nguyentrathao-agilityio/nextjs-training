@@ -1,3 +1,11 @@
+import "@/app/ui/global.css";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "NextJS Course App",
+  description: "Your first NextJS app!",
+};
+
 export default function RootLayout({
   children,
 }: {
