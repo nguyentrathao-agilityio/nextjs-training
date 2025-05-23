@@ -1,5 +1,6 @@
-import "@/app/ui/global.css";
+import { inter } from "@/app/ui/fonts";
 import { Metadata } from "next";
+import "@/app/ui/global.css";
 
 export const metadata: Metadata = {
   title: "NextJS Course App",
@@ -13,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
   );
 }
