@@ -1,0 +1,23 @@
+stages:
+  - build
+  - deploy
+
+build-job:
+  stage: build
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feature/01-nextjs-example"'
+  script:
+    - cd nextjs-dashboard
+    - npm install
+    - npm run build
+
+deploy-job:
+  stage: deploy
+  image: node:20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "feature/01-nextjs-example"'
+  before_script:
+    - npm install -g vercel
+  script:
+    - vercel --token $VERCEL_TOKEN --yes --prod --cwd nextjs-dashboard
