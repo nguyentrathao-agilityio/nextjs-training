@@ -1,17 +1,31 @@
+"use client";
+
+import { useActionState } from "react";
+import { createInvoice, InvoiceFormState } from "@/app/lib/actions";
 import { CustomerField } from "@/app/lib/definitions";
-import Link from "next/link";
+import { Button } from "@/app/ui/button";
 import {
   CheckIcon,
   ClockIcon,
   CurrencyDollarIcon,
   UserCircleIcon,
 } from "@heroicons/react/24/outline";
-import { Button } from "@/app/ui/button";
-import { createInvoice } from "@/app/lib/actions";
+import Link from "next/link";
+
+export const initialStates: InvoiceFormState = {
+  success: false,
+  message: "",
+  errors: {},
+};
 
 export default function Form({ customers }: { customers: CustomerField[] }) {
+  const [state, formAction, pending] = useActionState(
+    createInvoice,
+    initialStates
+  );
+
   return (
-    <form action={createInvoice}>
+    <form action={formAction}>
       <div className="rounded-md bg-gray-50 p-4 md:p-6">
         {/* Customer Name */}
         <div className="mb-4">
@@ -36,6 +50,9 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
             </select>
             <UserCircleIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500" />
           </div>
+          {state.errors.customerId && (
+            <p className="text-sm text-red-600">{state.errors.customerId[0]}</p>
+          )}
         </div>
 
         {/* Invoice Amount */}
@@ -55,6 +72,9 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               />
               <CurrencyDollarIcon className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
             </div>
+            {state.errors.amount && (
+              <p className="text-sm text-red-600">{state.errors.amount[0]}</p>
+            )}
           </div>
         </div>
 
@@ -97,8 +117,14 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
               </div>
             </div>
           </div>
+          {state.errors.status && (
+            <p className="text-sm text-red-600">{state.errors.status[0]}</p>
+          )}
         </fieldset>
       </div>
+      {state.message && (
+        <p className="mt-4 text-sm text-red-600 text-center">{state.message}</p>
+      )}
       <div className="mt-6 flex justify-end gap-4">
         <Link
           href="/dashboard/invoices"
@@ -106,7 +132,9 @@ export default function Form({ customers }: { customers: CustomerField[] }) {
         >
           Cancel
         </Link>
-        <Button type="submit">Create Invoice</Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Creating Invoice..." : "Create Invoice"}
+        </Button>
       </div>
     </form>
   );

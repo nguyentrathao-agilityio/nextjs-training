@@ -8,29 +8,55 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number(),
-  status: z.enum(["pending", "paid"]),
+  customerId: z.string().min(1, "Customer ID is required"),
+  amount: z.coerce.number().min(1, "Amount must be greater than 0"),
+  status: z.enum(["pending", "paid"], {
+    errorMap: () => ({ message: "Status must be either 'pending' or 'paid'" }),
+  }),
   date: z.string(),
 });
 
 const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
-export async function createInvoice(formData: FormData) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const { customerId, amount, status } = CreateInvoice.parse(rawFormData);
+export type InvoiceFormState = {
+  success: boolean;
+  message: string;
+  errors: any;
+};
 
-  const amountInCents = amount * 100;
-  const date = new Date().toISOString().split("T")[0];
+export async function createInvoice(
+  _state: InvoiceFormState,
+  formData: FormData
+): Promise<InvoiceFormState> {
+  try {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const { customerId, amount, status } = CreateInvoice.parse(rawFormData);
 
-  await sql`
-    INSERT INTO invoices (customer_id, amount, status, date)
-    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-  `;
+    const amountInCents = amount * 100;
+    const date = new Date().toISOString().split("T")[0];
 
-  revalidatePath("/dashboard/invoices");
-  redirect("/dashboard/invoices");
+    await sql`
+      INSERT INTO invoices (customer_id, amount, status, date)
+      VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
+    `;
+
+    revalidatePath("/dashboard/invoices");
+    redirect("/dashboard/invoices");
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return {
+        success: false,
+        message: "Validation failed",
+        errors: err.flatten().fieldErrors,
+      };
+    }
+    return {
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+      errors: {},
+    };
+  }
 }
 
 export async function updateInvoice(id: string, formData: FormData) {
