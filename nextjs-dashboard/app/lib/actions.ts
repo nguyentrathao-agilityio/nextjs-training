@@ -20,9 +20,12 @@ const CreateInvoice = FormSchema.omit({ id: true, date: true });
 const UpdateInvoice = FormSchema.omit({ id: true, date: true });
 
 export type InvoiceFormState = {
+  id?: string;
   success: boolean;
   message: string;
-  errors: any;
+  errors: {
+    [key: string]: string[] | undefined;
+  };
 };
 
 export async function createInvoice(
@@ -40,9 +43,6 @@ export async function createInvoice(
       INSERT INTO invoices (customer_id, amount, status, date)
       VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
     `;
-
-    revalidatePath("/dashboard/invoices");
-    redirect("/dashboard/invoices");
   } catch (err) {
     if (err instanceof z.ZodError) {
       return {
@@ -57,19 +57,43 @@ export async function createInvoice(
       errors: {},
     };
   }
+
+  revalidatePath("/dashboard/invoices");
+  return redirect("/dashboard/invoices");
 }
 
-export async function updateInvoice(id: string, formData: FormData) {
-  const rawFormData = Object.fromEntries(formData.entries());
-  const { customerId, amount, status } = UpdateInvoice.parse(rawFormData);
+export async function updateInvoice(
+  state: InvoiceFormState,
+  formData: FormData
+): Promise<InvoiceFormState> {
+  try {
+    const rawFormData = Object.fromEntries(formData.entries());
+    const { customerId, amount, status } = UpdateInvoice.parse(rawFormData);
 
-  const amountInCents = amount * 100;
+    const amountInCents = amount * 100;
 
-  await sql`
-    UPDATE invoices
-    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-    WHERE id = ${id}
-  `;
+    if (state?.id) {
+      await sql`
+      UPDATE invoices
+      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+      WHERE id = ${state?.id}
+    `;
+    }
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return {
+        success: false,
+        message: "Validation failed",
+        errors: err.flatten().fieldErrors,
+      };
+    }
+
+    return {
+      success: false,
+      message: "An unexpected error occurred. Please try again later.",
+      errors: {},
+    };
+  }
 
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
