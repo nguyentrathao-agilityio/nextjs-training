@@ -8,7 +8,7 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
 
 const FormSchema = z.object({
   id: z.string(),
-  customerId: z.string().min(1, "Customer ID is required"),
+  customerId: z.string().min(1, "Customer ID is required").default(""),
   amount: z.coerce.number().min(1, "Amount must be greater than 0"),
   status: z.enum(["pending", "paid"], {
     errorMap: () => ({ message: "Status must be either 'pending' or 'paid'" }),
